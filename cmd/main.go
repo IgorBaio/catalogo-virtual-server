@@ -79,7 +79,11 @@ func main() {
 	// })
 
 	log.Println("Servidor rodando em http://localhost:8080")
-	if err := router.Run(":8080"); err != nil {
+	port := utils.GetEnvVar("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	if err := router.Run(":" + port); err != nil {
 		log.Fatal(err)
 	}
 }
