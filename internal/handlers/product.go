@@ -32,7 +32,7 @@ func (h *ProductHandler) GetProductsQueryData(c *gin.Context) {
 	// Realiza a Query com FilterExpression
 	result, err := h.dbClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String(h.tableName),
-		FilterExpression: aws.String("contains(ProductName, :query)"),
+		FilterExpression: aws.String("contains(OwnerId, :query)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":query": &types.AttributeValueMemberS{Value: query},
 		},
@@ -106,7 +106,10 @@ func mapToStructClient(item map[string]types.AttributeValue, response *entities.
 					response.IsActive = false
 				}
 			}
-
+		case "OwnerId":
+			if v, ok := value.(*types.AttributeValueMemberS); ok {
+				response.OwnerID = v.Value
+			}
 		}
 	}
 	return nil
@@ -159,6 +162,7 @@ func prepareItemToInput(tableName string, inputData entities.Product, isActive b
 			"WhatsappMessage": &types.AttributeValueMemberS{Value: inputData.WhatsappMessage},
 			"Image":           &types.AttributeValueMemberS{Value: inputData.Image},
 			"Active":          &types.AttributeValueMemberS{Value: fmt.Sprintf("%t", isActive)},
+			"OwnerId":         &types.AttributeValueMemberS{Value: inputData.OwnerID},
 		},
 	}
 }
