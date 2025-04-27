@@ -66,7 +66,7 @@ func main() {
 	// })
 
 	// Definir as rotas GET e POST
-	// router.GET("/ping", productHandler.Ping)
+	router.GET("/ping", productHandler.Ping)
 	// router.GET("/api/produto/:id", productHandler.GetClientData)
 	router.GET("/api/produto/query/:query", productHandler.GetProductsQueryData)
 	// router.GET("/api/produtos", productHandler.GetClientsData)
