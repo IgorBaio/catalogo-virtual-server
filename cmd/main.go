@@ -46,12 +46,12 @@ func main() {
 	// Configurar o servidor Gin
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:5100"}, // Domínios permitidos
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},        // Métodos permitidos
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},        // Headers permitidos
-		ExposeHeaders:    []string{"Content-Length", "Authorization"},                // Headers expostos
-		AllowCredentials: true,                                                       // Permitir cookies
-		MaxAge:           12 * time.Hour,                                             // Cache da configuração de CORS
+		AllowOrigins:     []string{"http://localhost:5173"},                   // Domínios permitidos
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, // Métodos permitidos
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"}, // Headers permitidos
+		ExposeHeaders:    []string{"Content-Length", "Authorization"},         // Headers expostos
+		AllowCredentials: true,                                                // Permitir cookies
+		MaxAge:           12 * time.Hour,                                      // Cache da configuração de CORS
 	}))
 
 	// router.POST("/login", func(c *gin.Context) {
