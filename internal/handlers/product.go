@@ -231,6 +231,37 @@ func (h *ProductHandler) DeactivateProduct(c *gin.Context) {
 	c.JSON(201, gin.H{"message": "Item desativado com sucesso"})
 }
 
+func (h *ProductHandler) DeleteProduct(c *gin.Context) {
+
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(500, gin.H{"error": "Id obrigatório"})
+		return
+	}
+
+	result, _ := getProduct(h, c)
+	if result.Item == nil {
+		c.JSON(400, gin.H{"error": "Erro buscar estabelecimento"})
+		return
+	}
+
+	input := &dynamodb.DeleteItemInput{
+		TableName: aws.String(h.tableName),
+		Key: map[string]types.AttributeValue{
+			"id": &types.AttributeValueMemberS{Value: id},
+		},
+	}
+
+	_, err := h.dbClient.DeleteItem(context.TODO(), input)
+	if err != nil {
+		log.Printf("Erro ao deletar item no DynamoDB: %v", err)
+		c.JSON(500, gin.H{"error": "Erro ao deletar item"})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "Item deletado com sucesso"})
+}
+
 func (h *ProductHandler) Ping(c *gin.Context) {
 	c.JSON(201, gin.H{"message": "pong"})
 }

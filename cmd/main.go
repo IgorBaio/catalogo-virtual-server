@@ -75,6 +75,7 @@ func main() {
 	router.POST("/api/produto", productHandler.PostProductData)
 	router.PUT("/api/produto/:id", productHandler.UpdateProduct)
 	router.DELETE("/api/produto/:id", productHandler.DeactivateProduct)
+	router.DELETE("/api/produto/delete/:id", productHandler.DeleteProduct)
 	// router.GET("/validateJWT", func(c *gin.Context) {
 
 	// 	userHandler.ValidateJWTORCreate(c, auth)
