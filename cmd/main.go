@@ -47,7 +47,7 @@ func main() {
 	// Configurar o servidor Gin
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},                   // Domínios permitidos
+		AllowOrigins:     []string{"http://localhost:5173", "https://igorbaio.github.io"},                   // Domínios permitidos
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, // Métodos permitidos
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"}, // Headers permitidos
 		ExposeHeaders:    []string{"Content-Length", "Authorization"},         // Headers expostos
