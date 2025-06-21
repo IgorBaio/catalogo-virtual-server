@@ -47,7 +47,7 @@ func main() {
 	// Configurar o servidor Gin
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},                   // Domínios permitidos
+		AllowOrigins:     []string{"http://localhost:5173", "https://igorbaio.github.io"},                   // Domínios permitidos
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, // Métodos permitidos
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"}, // Headers permitidos
 		ExposeHeaders:    []string{"Content-Length", "Authorization"},         // Headers expostos
@@ -81,11 +81,11 @@ func main() {
 	// 	userHandler.ValidateJWTORCreate(c, auth)
 	// })
 
-	log.Println("Servidor rodando em http://localhost:8080")
 	port := utils.GetEnvVar("PORT")
 	if port == "" {
 		port = "8080"
 	}
+	log.Println("Servidor rodando em http://localhost:"+port)
 	if err := router.Run(":" + port); err != nil {
 		log.Fatal(err)
 	}
