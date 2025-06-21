@@ -41,6 +41,7 @@ func main() {
 
 	// Injetar o cliente no handler
 	productHandler := handlers.NewProductHandler(client, "catalog-products")
+	loginHandler := handlers.NewLoginHandler(client, "users-catalogo")
 	// auth := utils.NewAuth()
 
 	// Configurar o servidor Gin
@@ -66,6 +67,7 @@ func main() {
 	// })
 
 	// Definir as rotas GET e POST
+	router.POST("/login", loginHandler.Login)
 	router.GET("/ping", productHandler.Ping)
 	// router.GET("/api/produto/:id", productHandler.GetClientData)
 	router.GET("/api/produto/query/:query", productHandler.GetProductsQueryData)
