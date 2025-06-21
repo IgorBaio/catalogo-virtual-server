@@ -26,7 +26,7 @@ func NewLoginHandler(dbClient *dynamodb.Client, tableName string) *LoginHandler 
 // Login verifies the credentials and updates Last_login on success.
 func (h *LoginHandler) Login(c *gin.Context) {
 	var input struct {
-		User     string `json:"user"`
+		UserId     string `json:"user"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
@@ -39,7 +39,7 @@ func (h *LoginHandler) Login(c *gin.Context) {
 	getInput := &dynamodb.GetItemInput{
 		TableName: aws.String(h.tableName),
 		Key: map[string]types.AttributeValue{
-			"User": &types.AttributeValueMemberS{Value: input.User},
+			"userId": &types.AttributeValueMemberS{Value: input.UserId},
 		},
 	}
 
@@ -63,7 +63,7 @@ func (h *LoginHandler) Login(c *gin.Context) {
 		_, err := h.dbClient.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
 			TableName: aws.String(h.tableName),
 			Key: map[string]types.AttributeValue{
-				"User": &types.AttributeValueMemberS{Value: input.User},
+				"userId": &types.AttributeValueMemberS{Value: input.UserId},
 			},
 			ExpressionAttributeNames: map[string]string{
 				"#last": "Last_login",
@@ -87,7 +87,7 @@ func (h *LoginHandler) Login(c *gin.Context) {
 
 // mapToUser maps DynamoDB attributes to the User struct.
 func mapToUser(item map[string]types.AttributeValue, user *entities.User) {
-	if v, ok := item["User"].(*types.AttributeValueMemberS); ok {
+	if v, ok := item["userId"].(*types.AttributeValueMemberS); ok {
 		user.User = v.Value
 	}
 	if v, ok := item["Email"].(*types.AttributeValueMemberS); ok {
