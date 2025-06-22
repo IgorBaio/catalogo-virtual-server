@@ -26,7 +26,7 @@ func NewLoginHandler(dbClient *dynamodb.Client, tableName string) *LoginHandler 
 // Login verifies the credentials and updates Last_login on success.
 func (h *LoginHandler) Login(c *gin.Context) {
 	var input struct {
-		UserId     string `json:"user"`
+		UserId   string `json:"user"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
@@ -78,7 +78,7 @@ func (h *LoginHandler) Login(c *gin.Context) {
 			c.JSON(500, gin.H{"error": "Erro ao atualizar usuario"})
 			return
 		}
-		c.JSON(200, gin.H{"message": "Login realizado com sucesso"})
+		c.JSON(200, gin.H{"message": "Login realizado com sucesso", "company": user.Company})
 		return
 	}
 
@@ -95,6 +95,9 @@ func mapToUser(item map[string]types.AttributeValue, user *entities.User) {
 	}
 	if v, ok := item["Password"].(*types.AttributeValueMemberS); ok {
 		user.Password = v.Value
+	}
+	if v, ok := item["Company"].(*types.AttributeValueMemberS); ok {
+		user.Company = v.Value
 	}
 	if v, ok := item["Last_login"].(*types.AttributeValueMemberS); ok {
 		user.LastLogin = v.Value
