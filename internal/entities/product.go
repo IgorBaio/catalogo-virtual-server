@@ -10,12 +10,12 @@ id,
 */
 
 type Product struct {
-	ID              string  `json:"id"`
-	Name            string  `json:"name"`
-	Description     string  `json:"description"`
-	Price           float64 `json:"price"`
-	WhatsappMessage string  `json:"whatsappMessage"`
-	Image           string  `json:"image"`
-	IsActive        bool    `json:"isActive"`
-	OwnerID         string  `json:"ownerId"`
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price"`
+	Category    string  `json:"category"`
+	Image       string  `json:"image"`
+	IsActive    bool    `json:"isActive"`
+	OwnerID     string  `json:"ownerId"`
 }

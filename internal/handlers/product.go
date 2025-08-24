@@ -5,7 +5,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -27,49 +29,79 @@ func NewProductHandler(dbClient *dynamodb.Client, tableName string) *ProductHand
 }
 
 func (h *ProductHandler) GetProductsQueryData(c *gin.Context) {
-	query := c.Param("query")
+	ctx := c.Request.Context()
+
+	ownerID := c.Param("query") // supondo que seja o OwnerId exato
+	if ownerID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "query (OwnerId) é obrigatório"})
+		return
+	}
 	name := c.Query("name")
 
-	// Realiza a Query com FilterExpression
-	filterExpression := "contains(OwnerId, :query)"
-	expressionAttributeValues := map[string]types.AttributeValue{
-		":query": &types.AttributeValueMemberS{Value: query},
+	fmt.Println("Name", name)
+
+	// Monta KeyCondition: OwnerId = :oid
+	exprAttrNames := map[string]string{
+		"#oid": "OwnerId",
+	}
+	exprAttrValues := map[string]types.AttributeValue{
+		":oid": &types.AttributeValueMemberS{Value: ownerID},
 	}
 
+	keyCond := "#oid = :oid"
+
+	// Filtro opcional por Name (palavra reservada -> usar alias)
+	var filterExpr *string
 	if name != "" {
-		filterExpression += " AND contains(ProductName, :name)"
-		expressionAttributeValues[":name"] = &types.AttributeValueMemberS{Value: name}
+		exprAttrNames["#nm"] = "ProductNameLower"
+		exprAttrValues[":name"] = &types.AttributeValueMemberS{Value: name}
+		fe := "contains(#nm, :name)"
+		filterExpr = aws.String(fe)
 	}
 
-	result, err := h.dbClient.Scan(context.TODO(), &dynamodb.ScanInput{
-		TableName:                 aws.String(h.tableName),
-		FilterExpression:          aws.String(filterExpression),
-		ExpressionAttributeValues: expressionAttributeValues,
-	})
-	if err != nil {
-		log.Fatalf("Erro ao executar Scan: %v", err)
-	}
+	fmt.Println("FilterExpression", filterExpr)
 
-	fmt.Println("tamanho results", len(result.Items))
+	// Paginação: acumula todos os itens (ou adapte p/ limit/offset)
+	var products []entities.Product
+	var lastEvaluatedKey map[string]types.AttributeValue
 
-	// Exibe os resultados
-	products := make([]entities.Product, len(result.Items))
-	fmt.Println("tamanho array", len(products))
-	for idx, item := range result.Items {
-		fmt.Println(item)
-		product := entities.Product{}
-
-		err := mapToStructClient(item, &product)
-		fmt.Println("product", product)
+	for {
+		out, err := h.dbClient.Query(ctx, &dynamodb.QueryInput{
+			TableName:                 aws.String(h.tableName),
+			IndexName:                 aws.String("OwnerId"), // ajuste para o nome real do seu GSI
+			KeyConditionExpression:    aws.String(keyCond),
+			FilterExpression:          filterExpr, // nil se não houver filtro por name
+			ExpressionAttributeNames:  exprAttrNames,
+			ExpressionAttributeValues: exprAttrValues,
+			ExclusiveStartKey:         lastEvaluatedKey,
+			// ProjectionExpression:    aws.String("#oid, #nm, ...") // opcional
+		})
 		if err != nil {
-			fmt.Println("Erro ao fazer unmarshal:", err)
+			// retorna HTTP 500 em vez de derrubar o processo
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Erro ao executar Query: %v", err)})
 			return
 		}
-		products[idx] = product
-		fmt.Println("tamanho array", len(products))
+
+		fmt.Println("tamanho results", len(out.Items))
+
+		// Transforma Items -> struct
+		for _, item := range out.Items {
+			var p entities.Product
+			if err := mapToStructClient(item, &p); err != nil {
+				// apenas loga e segue, ou retorne 500 conforme sua política
+				log.Printf("unmarshal product: %v", err)
+				continue
+			}
+			products = append(products, p)
+		}
+
+		if out.LastEvaluatedKey == nil || len(out.LastEvaluatedKey) == 0 {
+			break
+		}
+		lastEvaluatedKey = out.LastEvaluatedKey
 	}
 
-	c.JSON(200, gin.H{"data": products})
+	c.JSON(http.StatusOK, gin.H{"data": products})
 }
 
 // Função para mapear manualmente o map para a struct
@@ -99,9 +131,9 @@ func mapToStructClient(item map[string]types.AttributeValue, response *entities.
 
 				response.Price = flValue // Supondo que o preço seja armazenado como string
 			}
-		case "WhatsappMessage":
+		case "Category":
 			if v, ok := value.(*types.AttributeValueMemberS); ok {
-				response.WhatsappMessage = v.Value
+				response.Category = v.Value
 			}
 		case "Image":
 			if v, ok := value.(*types.AttributeValueMemberS); ok {
@@ -164,14 +196,15 @@ func prepareItemToInput(tableName string, inputData entities.Product, isActive b
 	return &dynamodb.PutItemInput{
 		TableName: aws.String(tableName), // Substitua pelo nome da sua tabela
 		Item: map[string]types.AttributeValue{
-			"id":              &types.AttributeValueMemberS{Value: id},
-			"ProductName":     &types.AttributeValueMemberS{Value: inputData.Name},
-			"Description":     &types.AttributeValueMemberS{Value: inputData.Description},
-			"Price":           &types.AttributeValueMemberS{Value: priceStr},
-			"WhatsappMessage": &types.AttributeValueMemberS{Value: inputData.WhatsappMessage},
-			"Image":           &types.AttributeValueMemberS{Value: inputData.Image},
-			"Active":          &types.AttributeValueMemberS{Value: fmt.Sprintf("%t", isActive)},
-			"OwnerId":         &types.AttributeValueMemberS{Value: inputData.OwnerID},
+			"id":               &types.AttributeValueMemberS{Value: id},
+			"ProductName":      &types.AttributeValueMemberS{Value: inputData.Name},
+			"ProductNameLower": &types.AttributeValueMemberS{Value: strings.ToLower(inputData.Name)},
+			"Description":      &types.AttributeValueMemberS{Value: inputData.Description},
+			"Price":            &types.AttributeValueMemberS{Value: priceStr},
+			"Category":         &types.AttributeValueMemberS{Value: inputData.Category},
+			"Image":            &types.AttributeValueMemberS{Value: inputData.Image},
+			"Active":           &types.AttributeValueMemberS{Value: fmt.Sprintf("%t", isActive)},
+			"OwnerId":          &types.AttributeValueMemberS{Value: inputData.OwnerID},
 		},
 	}
 }
