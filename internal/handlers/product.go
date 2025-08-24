@@ -28,14 +28,23 @@ func NewProductHandler(dbClient *dynamodb.Client, tableName string) *ProductHand
 
 func (h *ProductHandler) GetProductsQueryData(c *gin.Context) {
 	query := c.Param("query")
+	name := c.Query("name")
 
 	// Realiza a Query com FilterExpression
+	filterExpression := "contains(OwnerId, :query)"
+	expressionAttributeValues := map[string]types.AttributeValue{
+		":query": &types.AttributeValueMemberS{Value: query},
+	}
+
+	if name != "" {
+		filterExpression += " AND contains(ProductName, :name)"
+		expressionAttributeValues[":name"] = &types.AttributeValueMemberS{Value: name}
+	}
+
 	result, err := h.dbClient.Scan(context.TODO(), &dynamodb.ScanInput{
-		TableName:        aws.String(h.tableName),
-		FilterExpression: aws.String("contains(OwnerId, :query)"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":query": &types.AttributeValueMemberS{Value: query},
-		},
+		TableName:                 aws.String(h.tableName),
+		FilterExpression:          aws.String(filterExpression),
+		ExpressionAttributeValues: expressionAttributeValues,
 	})
 	if err != nil {
 		log.Fatalf("Erro ao executar Scan: %v", err)
