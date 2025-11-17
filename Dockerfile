@@ -1,26 +1,34 @@
 # Build stage
-FROM golang:1.23 as builder
-WORKDIR /src
+FROM golang:1.23-alpine AS builder
 
-# Download dependencies using go modules
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache git
+
+# Copy go mod files
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy application source
-COPY cmd ./cmd
-COPY internal ./internal
+# Copy source code
+COPY . .
 
-# Build the server binary
+# Build the application
 RUN go build -o catalogo-server ./cmd
 
 # Runtime stage
-FROM debian:bookworm-slim
+FROM alpine:latest
+
 WORKDIR /app
-COPY --from=builder /src/catalogo-server /usr/local/bin/catalogo-server
 
-# Expose default port
-EXPOSE 8080
+# Install ca-certificates for HTTPS requests
+RUN apk --no-cache add ca-certificates
 
-# Start the server
-ENTRYPOINT ["/usr/local/bin/catalogo-server"]
-CMD []
+# Copy binary from builder
+COPY --from=builder /app .
+
+# Expose port
+EXPOSE 9090
+
+# Run the application
+CMD ["./catalogo-server"]
